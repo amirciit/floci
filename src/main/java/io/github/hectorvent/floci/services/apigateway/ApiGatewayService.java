@@ -660,6 +660,11 @@ public class ApiGatewayService {
         apiKey.setEnabled(!Boolean.FALSE.equals(request.get("enabled")));
         apiKey.setCreatedDate(System.currentTimeMillis() / 1000L);
         apiKey.setLastUpdatedDate(apiKey.getCreatedDate());
+        if (request.get("tags") instanceof Map<?, ?> tags) {
+            @SuppressWarnings("unchecked")
+            Map<String, String> apiKeyTags = (Map<String, String>) tags;
+            apiKey.setTags(new HashMap<>(apiKeyTags));
+        }
 
         apiKeyStore.put(apiKeyGlobalKey(region, apiKey.getId()), apiKey);
         LOG.infov("Created API Key {0}", apiKey.getId());

@@ -622,6 +622,18 @@ public class ApiGatewayController {
         return Response.ok(root.toString()).type(MediaType.APPLICATION_JSON).build();
     }
 
+    @GET
+    @Path("/apikeys/{apiKeyId}")
+    public Response getApiKey(@Context HttpHeaders headers,
+                              @PathParam("apiKeyId") String apiKeyId,
+                              @QueryParam("includeValue") Boolean includeValue) {
+        String region = regionResolver.resolveRegion(headers);
+        ApiKey key = service.getApiKey(region, apiKeyId);
+        return Response.ok(toApiKeyNode(key, Boolean.TRUE.equals(includeValue)).toString())
+                .type(MediaType.APPLICATION_JSON)
+                .build();
+    }
+
     @POST
     @Path("/usageplans")
     public Response createUsagePlan(@Context HttpHeaders headers, String body) {
@@ -1637,11 +1649,22 @@ public class ApiGatewayController {
     }
 
     private ObjectNode toApiKeyNode(ApiKey k) {
+        return toApiKeyNode(k, true);
+    }
+
+    private ObjectNode toApiKeyNode(ApiKey k, boolean includeValue) {
         ObjectNode node = objectMapper.createObjectNode();
         node.put("id", k.getId());
         node.put("name", k.getName());
-        node.put("value", k.getValue());
+        if (includeValue) {
+            node.put("value", k.getValue());
+        }
         node.put("enabled", k.isEnabled());
+        if (k.getTags() != null && !k.getTags().isEmpty()) {
+            ObjectNode tagsNode = objectMapper.createObjectNode();
+            k.getTags().forEach(tagsNode::put);
+            node.set("tags", tagsNode);
+        }
         return node;
     }
 

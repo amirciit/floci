@@ -18,6 +18,8 @@ class ApiGatewayIntegrationTest {
     private static String rootId;
     private static String resourceId;
     private static String deploymentId;
+    private static String apiKeyId;
+    private static String apiKeyValue;
 
     // ──────────────────────────── REST API lifecycle ────────────────────────────
 
@@ -374,6 +376,74 @@ class ApiGatewayIntegrationTest {
     }
 
     // ──────────────────────────── _custom_id_ tag ────────────────────────────
+
+    @Test @Order(40)
+    void createApiKey_withTags_returnsTags() {
+        String body = """
+                {"name":"k","enabled":true,"tags":{"Team":"platform","Project":"demo"}}
+                """;
+        var response = given()
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when().post("/apikeys")
+                .then()
+                .statusCode(201)
+                .body("id", notNullValue())
+                .body("name", equalTo("k"))
+                .body("enabled", equalTo(true))
+                .body("value", notNullValue())
+                .body("tags.Team", equalTo("platform"))
+                .body("tags.Project", equalTo("demo"))
+                .extract();
+        apiKeyId = response.path("id");
+        apiKeyValue = response.path("value");
+    }
+
+    @Test @Order(41)
+    void getApiKey_returnsTagsAndHonorsIncludeValue() {
+        given()
+                .queryParam("includeValue", false)
+                .when().get("/apikeys/" + apiKeyId)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(apiKeyId))
+                .body("name", equalTo("k"))
+                .body("enabled", equalTo(true))
+                .body("value", nullValue())
+                .body("tags.Team", equalTo("platform"))
+                .body("tags.Project", equalTo("demo"));
+
+        given()
+                .queryParam("includeValue", true)
+                .when().get("/apikeys/" + apiKeyId)
+                .then()
+                .statusCode(200)
+                .body("value", equalTo(apiKeyValue));
+    }
+
+    @Test @Order(42)
+    void getApiKeys_includesTagsOnItems() {
+        given()
+                .when().get("/apikeys")
+                .then()
+                .statusCode(200)
+                .body("item.find { it.id == '" + apiKeyId + "' }.name", equalTo("k"))
+                .body("item.find { it.id == '" + apiKeyId + "' }.value", equalTo(apiKeyValue))
+                .body("item.find { it.id == '" + apiKeyId + "' }.enabled", equalTo(true))
+                .body("item.find { it.id == '" + apiKeyId + "' }.tags.Team", equalTo("platform"))
+                .body("item.find { it.id == '" + apiKeyId + "' }.tags.Project", equalTo("demo"));
+    }
+
+    @Test @Order(43)
+    void getApiKey_missingReturnsJsonNotFoundException() {
+        given()
+                .when().get("/apikeys/does-not-exist")
+                .then()
+                .statusCode(404)
+                .header("Content-Type", containsString("application/json"))
+                .body("__type", equalTo("NotFoundException"))
+                .body("message", equalTo("API Key not found"));
+    }
 
     @Test @Order(50)
     void createRestApi_customIdTag_usesTagValueAsApiId() {
