@@ -1660,11 +1660,11 @@ public class ApiGatewayController {
             node.put("value", k.getValue());
         }
         node.put("enabled", k.isEnabled());
-        if (k.getTags() != null && !k.getTags().isEmpty()) {
-            ObjectNode tagsNode = objectMapper.createObjectNode();
+        ObjectNode tagsNode = objectMapper.createObjectNode();
+        if (k.getTags() != null) {
             k.getTags().forEach(tagsNode::put);
-            node.set("tags", tagsNode);
         }
+        node.set("tags", tagsNode);
         return node;
     }
 

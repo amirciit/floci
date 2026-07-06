@@ -445,6 +445,34 @@ class ApiGatewayIntegrationTest {
                 .body("message", equalTo("API Key not found"));
     }
 
+    @Test @Order(44)
+    void apiKeyWithoutTags_returnsEmptyTagsObject() {
+        String untaggedKeyId = given()
+                .contentType(ContentType.JSON)
+                .body("{\"name\":\"untagged\",\"enabled\":true}")
+                .when().post("/apikeys")
+                .then()
+                .statusCode(201)
+                .body("id", notNullValue())
+                .body("name", equalTo("untagged"))
+                .body("tags", anEmptyMap())
+                .extract().path("id");
+
+        given()
+                .queryParam("includeValue", false)
+                .when().get("/apikeys/" + untaggedKeyId)
+                .then()
+                .statusCode(200)
+                .body("id", equalTo(untaggedKeyId))
+                .body("tags", anEmptyMap());
+
+        given()
+                .when().get("/apikeys")
+                .then()
+                .statusCode(200)
+                .body("item.find { it.id == '" + untaggedKeyId + "' }.tags", anEmptyMap());
+    }
+
     @Test @Order(50)
     void createRestApi_customIdTag_usesTagValueAsApiId() {
         String body = """
